@@ -359,7 +359,7 @@ const locations = computed(() => {
           markerType: markerType,
           category: facility.category || 'General',
           description: facility.description || '',
-          floor_number: facility.floor_number ? String(facility.floor_number) : '',
+          floor_number: facility.floor_number ? String(facility.floor_number) : 'Not specified',
           hours: facility.hours || 'Not specified',
           icon: markerTypeIcons[markerType] || markerTypeIcons.default,
           marker: facility.marker,
