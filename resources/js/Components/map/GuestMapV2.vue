@@ -360,6 +360,7 @@ const locations = computed(() => {
           category: facility.category || 'General',
           description: facility.description || '',
           floor_number: facility.floor_number ? String(facility.floor_number) : 'Not specified',
+          status: facility.status || 'Not specified',
           hours: facility.hours || 'Not specified',
           icon: markerTypeIcons[markerType] || markerTypeIcons.default,
           marker: facility.marker,
@@ -2365,21 +2366,21 @@ onBeforeUnmount(() => {
                     <div v-if="selectedLocation.marker?.label" class="flex items-center gap-1.5 min-w-0">
                         <MapPinIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         <span class="text-[11px] font-medium text-gray-700 truncate" title="Location">
-                        {{ selectedLocation.marker.label ?? 'Not specified' }}
+                        Location: {{ selectedLocation.marker.label ?? 'Not specified' }}
                         </span>
                     </div>
 
                     <div v-if="selectedLocation.marker?.floor || selectedLocation.floor_number" class="flex items-center gap-1.5 min-w-0">
                         <Square3Stack3DIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         <span class="text-[11px] font-medium text-gray-700 truncate">
-                        Floor {{ selectedLocation.floor_number ?? 'Not specified' }}
+                        Floor:{{ selectedLocation.floor_number ?? 'Not specified' }}
                         </span>
                     </div>
 
                     <div v-if="selectedLocation.hours" class="col-span-2 flex items-start gap-1.5 min-w-0 pt-1 border-t border-gray-100">
                         <ClockIcon class="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
                         <span class="text-[11px] font-medium text-gray-700 leading-snug">
-                        {{ selectedLocation.hours ?? 'Operating hours not specified' }}
+                        Hours: {{ selectedLocation.hours ?? 'Operating hours not specified' }}
                         </span>
                     </div>
                     </div>
@@ -2793,7 +2794,7 @@ onBeforeUnmount(() => {
                   {{ location.name }}
                 </h3>
                 <span class="flex-shrink-0 text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                  Floor {{ location.floor_number ?? 'Not specified' }}
+                  Floor: {{ location.floor_number ?? 'Not specified' }}
                 </span>
               </div>
 
@@ -2839,14 +2840,14 @@ onBeforeUnmount(() => {
                     location.status === 'available' ? 'bg-green-500' :
                     location.status === 'occupied' ? 'bg-red-500' : 'bg-gray-400'
                   ]"></span>
-                  <span class="text-[10px] text-gray-600 capitalize">{{ location.status }}</span>
+                  <span class="text-[10px] text-gray-600 capitalize">Status: {{ location.status }}</span>
                 </div>
 
                 <div v-if="location.hours" class="flex items-center gap-1.5">
                   <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
-                  <span class="text-[10px] text-gray-600">{{ location.hours }}</span>
+                  <span class="text-[10px] text-gray-600">Hours: {{ location.hours }}</span>
                 </div>
               </div>
             </div>
