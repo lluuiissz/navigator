@@ -11,6 +11,7 @@ class Facility extends Model
         'category',
         'department',
         'description',
+        'floor_number',
         'hours',
         'marker_id',
         'status',

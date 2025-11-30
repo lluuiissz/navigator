@@ -9,6 +9,7 @@ import { useToast } from 'vue-toastification'
 import { useMapRouting } from '../../composables/useMapRouting'
 import { useGuestTracking } from '../../composables/useGuestTracking'
 import { useFacilityMarkers } from '../../composables/useFacilityMarkers'
+import { ReCompass3Fill } from '@kalimahapps/vue-icons';
 
 // Props
 const props = defineProps({
@@ -63,8 +64,8 @@ const guestInfo = ref({
 })
 const sessionCheckInterval = ref(null)
 const transportMode = ref('walking')
-const lastRouteCalculationPosition = ref(null) // Track last position where route was calculated
-const navigationInstructionsContainer = ref(null) // Reference to instructions container
+const lastRouteCalculationPosition = ref(null)
+const navigationInstructionsContainer = ref(null)
 
 const transportModes = [
   { value: 'walking', label: 'Walking', icon: '🚶', speed: 5 },
@@ -79,8 +80,6 @@ const guestRoles = [
   { value: 'faculty', label: 'Faculty', icon: '👨‍🏫' },
   { value: 'visitor', label: 'Visitor', icon: '👤' },
 ]
-
-// Don't use backend notes - only localStorage/sessionStorage
 const localNotes = ref([])
 const localFeedback = ref([])
 const facilityPhotos = ref({})
@@ -99,7 +98,7 @@ const isPhotoGalleryOpen = ref(false)
 const currentPhotoIndex = ref(0)
 const showAllPhotos = ref(false)
 const activeBaseLayer = ref('navigation')
-const STORAGE_TYPE = 'localStorage' // Change to 'sessionStorage' if you prefer session-only
+const STORAGE_TYPE = 'localStorage'
 
 const hydrateFeedback = () => {
   const aggregated = []
@@ -243,7 +242,7 @@ const logSearchToBackend = async (query) => {
       query: query.trim(),
       search_at: new Date().toISOString(),
     })
-    console.log('✅ Search logged successfully')
+    console.log('Search logged successfully')
   } catch (error) {
     console.error('Failed to log search:', error)
   }
@@ -266,11 +265,13 @@ watch(searchQuery, (query) => {
 
   if (query.length > 0) {
     isSearching.value = true
-    filteredLocations.value = locations.value.filter(loc =>
-      loc.name.toLowerCase().includes(query.toLowerCase()) ||
-      loc.department.toLowerCase().includes(query.toLowerCase()) ||
-      (loc.category && loc.category.toLowerCase().includes(query.toLowerCase()))
-    )
+      filteredLocations.value = locations.value.filter(loc =>
+        (loc.name && loc.name.toLowerCase().includes(query.toLowerCase())) ||
+        (loc.department && loc.department.toLowerCase().includes(query.toLowerCase())) ||
+        (loc.description && loc.description.toLowerCase().includes(query.toLowerCase())) ||
+        (loc.floor_number && loc.floor_number.toLowerCase().includes(query.toLowerCase())) ||
+        (loc.category && loc.category.toLowerCase().includes(query.toLowerCase()))
+      )
     showSearchResults.value = true
   } else {
     showSearchResults.value = false
@@ -358,6 +359,8 @@ const locations = computed(() => {
           markerType: markerType,
           category: facility.category || 'General',
           description: facility.description || '',
+          floor_number: facility.floor_number ? String(facility.floor_number) : '',
+          hours: facility.hours || 'Not specified',
           icon: markerTypeIcons[markerType] || markerTypeIcons.default,
           marker: facility.marker,
           photos: Array.isArray(facility.photos) ? facility.photos : [],
@@ -442,7 +445,6 @@ const calculateETA = (distanceMeters) => {
 }
 
 const generateInstructions = (route, isPrivatePath) => {
-  // Use enhanced instruction generator from composable
   return routingUtils.generateEnhancedInstructions(route, isPrivatePath)
 }
 
@@ -570,14 +572,14 @@ const createRoute = async (clickLatLng, location = null, routeColor = null) => {
   // Store the position where we're calculating this route from
   lastRouteCalculationPosition.value = { lat: userPos.lat, lng: userPos.lng }
 
-  console.log('🔍 Calculating optimal route...')
+  console.log('Calculating optimal route...')
 
   // Check if user clicked ON a campus path (within 30m)
   if (privateRoutes.value && privateRoutes.value.features) {
     const clickedLineString = routingUtils.findClickedLineString(destPos, privateRoutes.value.features, 30)
 
     if (clickedLineString) {
-      console.log('🎯 User clicked on a campus path! Using hybrid route...')
+      console.log('User clicked on a campus path! Using hybrid route...')
 
       const lineCoords = clickedLineString.feature.geometry.coordinates
       const nearestPoint = clickedLineString.point
@@ -605,14 +607,14 @@ const createRoute = async (clickLatLng, location = null, routeColor = null) => {
       }
 
       drawRouteOnMap(fullRoute, 'hybrid', true, routeColor)
-      console.log('✅ Hybrid route to campus path completed')
+      console.log('Hybrid route to campus path completed')
       return
     }
   }
 
   // If no private routes available, use public route only
   if (!privateRoutes.value || !privateRoutes.value.features || privateRoutes.value.features.length === 0) {
-    console.warn('⚠️ No campus paths available, using public route only')
+    console.warn('No campus paths available, using public route only')
     const publicRoute = await routingUtils.getPublicRoute(userPos, destPos, transportMode.value)
     if (publicRoute) {
       drawRouteOnMap(publicRoute, 'public', false, routeColor)
@@ -626,7 +628,7 @@ const createRoute = async (clickLatLng, location = null, routeColor = null) => {
   const campusGraph = routingUtils.buildCampusGraph(privateRoutes.value.features)
 
   if (campusGraph.size === 0) {
-    console.warn('⚠️ Campus graph is empty, using public route only')
+    console.warn('Campus graph is empty, using public route only')
     const publicRoute = await routingUtils.getPublicRoute(userPos, destPos, transportMode.value)
     if (publicRoute) {
       drawRouteOnMap(publicRoute, 'public', false, routeColor)
@@ -650,10 +652,10 @@ const createRoute = async (clickLatLng, location = null, routeColor = null) => {
         distance: distance,
         isPrivate: false
       })
-      console.log(`🟢 Public route: ${Math.round(distance)}m`)
+      console.log(`Public route: ${Math.round(distance)}m`)
     }
   } catch (error) {
-    console.error('❌ Public route error:', error)
+    console.error('Public route error:', error)
   }
 
   // Option 2: Private campus route (if both points are near campus)
@@ -673,11 +675,11 @@ const createRoute = async (clickLatLng, location = null, routeColor = null) => {
           distance: distance,
           isPrivate: true
         })
-        console.log(`🔴 Campus route: ${Math.round(distance)}m`)
+        console.log(`Campus route: ${Math.round(distance)}m`)
       }
     }
   } catch (error) {
-    console.error('❌ Campus route error:', error)
+    console.error('Campus route error:', error)
   }
 
   // Option 3: Hybrid routes (public to campus entrance + private path)
@@ -709,7 +711,7 @@ const createRoute = async (clickLatLng, location = null, routeColor = null) => {
                 distance: distance,
                 isPrivate: true
               })
-              console.log(`🔵 Hybrid route: ${Math.round(distance)}m`)
+              console.log(`Hybrid route: ${Math.round(distance)}m`)
             }
           }
         }
@@ -721,7 +723,7 @@ const createRoute = async (clickLatLng, location = null, routeColor = null) => {
 
   // Select the best route (shortest distance)
   if (routeOptions.length === 0) {
-    console.warn('⚠️ All routing failed, using direct line')
+    console.warn('All routing failed, using direct line')
     drawRouteOnMap([userPos, destPos], 'direct', false)
     return
   }
@@ -897,11 +899,12 @@ const deleteNote = async (noteId) => {
     // Find the note to get its facility ID
     const noteToDelete = localNotes.value.find(n => n.id === noteId)
     if (!noteToDelete) {
-      toast.error('Note not found')
+    //   toast.error('Note not found')
       return
     }
 
     // Get the facility associated with this note's marker
+    let removedFromStorage = false
     const facility = locations.value.find(loc => loc.marker_id === noteToDelete.marker_id)
     if (facility) {
       const storageKey = `facility_notes_${facility.id}`
@@ -909,8 +912,39 @@ const deleteNote = async (noteId) => {
 
       if (existingNotesData) {
         let notesArray = JSON.parse(existingNotesData)
-        notesArray = notesArray.filter(note => note.id !== noteId)
-        storage.setItem(storageKey, JSON.stringify(notesArray))
+        const filtered = notesArray.filter(note => note.id !== noteId)
+        if (filtered.length !== notesArray.length) {
+          if (filtered.length === 0) {
+            storage.removeItem(storageKey)
+          } else {
+            storage.setItem(storageKey, JSON.stringify(filtered))
+          }
+          removedFromStorage = true
+        }
+      }
+    }
+
+    if (!removedFromStorage) {
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i)
+        if (!key || !key.startsWith('facility_notes_')) continue
+        try {
+          const data = storage.getItem(key)
+          if (!data) continue
+          let notesArr = JSON.parse(data)
+          const filtered = notesArr.filter(n => n.id !== noteId)
+          if (filtered.length !== notesArr.length) {
+            if (filtered.length === 0) {
+              storage.removeItem(key)
+            } else {
+              storage.setItem(key, JSON.stringify(filtered))
+            }
+            removedFromStorage = true
+            break
+          }
+        } catch (e) {
+          console.warn('Error checking storage key for note deletion:', key, e)
+        }
       }
     }
 
@@ -936,7 +970,11 @@ const deleteNote = async (noteId) => {
     // Remove from local state (this will trigger the watch and redisplay)
     localNotes.value = localNotes.value.filter(note => note.id !== noteId)
 
-    // toast.success('Note deleted successfully!')
+    if (removedFromStorage) {
+      toast.success('Note deleted')
+    } else {
+      toast.warning('Note removed from view but not found in storage')
+    }
   } catch (error) {
     console.error('Error deleting note:', error)
     // toast.error('Failed to delete note')
@@ -1314,13 +1352,11 @@ const displayNotesOnMap = () => {
           return
         }
 
-        // Create a marker at the same location as the facility marker
-        // This marker will move with map zoom/pan automatically
         const noteMarker = L.marker([location.lat, location.lng], {
           icon: noteBubbleIcon,
-          interactive: false, // Don't block clicks to the facility marker below
-          zIndexOffset: -1000, // Ensure it's below facility markers
-          bubblingMouseEvents: false // Prevent event bubbling issues
+          interactive: true,
+          zIndexOffset: 1000,
+          bubblingMouseEvents: true
         })
 
         // Add to map with error handling
@@ -2297,22 +2333,66 @@ onBeforeUnmount(() => {
           <div class="w-12 h-1 bg-gray-300 rounded-full"></div>
         </div>
 
-        <div class="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
-          <div class="min-w-0 pr-3">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">{{ selectedLocation.icon }}</span>
-              <h2 class="truncate text-base font-semibold text-gray-900">{{ selectedLocation.name }}</h2>
+        <div class="relative border-b border-gray-200 bg-white shadow-sm">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-green-900/10"></div>
+
+            <div class="px-4 py-3">
+                <div class="flex items-start justify-between gap-3">
+
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3 mb-2">
+                    <div class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 text-2xl shadow-sm">
+                        {{ selectedLocation.icon }}
+                    </div>
+
+                    <div class="min-w-0">
+                        <h2 class="text-sm font-bold text-gray-900 leading-tight truncate">
+                        {{ selectedLocation.name }}
+                        </h2>
+                        <div class="flex items-center gap-2 mt-0.5">
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700 border border-green-100 uppercase tracking-wide">
+                            {{ selectedLocation.category }}
+                        </span>
+                        <span v-if="selectedLocation.department" class="text-[10px] text-gray-500 truncate">
+                            {{ selectedLocation.department }}
+                        </span>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1.5 mt-2 bg-gray-50/50 rounded-md p-2 border border-gray-100">
+
+                    <div v-if="selectedLocation.marker?.label" class="flex items-center gap-1.5 min-w-0">
+                        <MapPinIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        <span class="text-[11px] font-medium text-gray-700 truncate" title="Location">
+                        {{ selectedLocation.marker.label }}
+                        </span>
+                    </div>
+
+                    <div v-if="selectedLocation.marker?.floor || selectedLocation.floor_number" class="flex items-center gap-1.5 min-w-0">
+                        <Square3Stack3DIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        <span class="text-[11px] font-medium text-gray-700 truncate">
+                        Floor {{ selectedLocation.marker?.floor || selectedLocation.floor_number }}
+                        </span>
+                    </div>
+
+                    <div v-if="selectedLocation.hours" class="col-span-2 flex items-start gap-1.5 min-w-0 pt-1 border-t border-gray-100">
+                        <ClockIcon class="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span class="text-[11px] font-medium text-gray-700 leading-snug">
+                        {{ selectedLocation.hours }}
+                        </span>
+                    </div>
+                    </div>
+                </div>
+
+                <button
+                    @click="closeDetailsPanel"
+                    class="flex-shrink-0 -mt-1 -mr-1 p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-lg transition-colors"
+                >
+                    <XMarkIcon class="h-5 w-5" />
+                </button>
+                </div>
             </div>
-            <p class="mt-1 text-xs text-gray-500">
-              {{ selectedLocation.department }} • {{ selectedLocation.category }}
-            </p>
-          </div>
-          <button
-            @click="closeDetailsPanel"
-            class="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-          >
-            <XMarkIcon class="h-5 w-5" />
-          </button>
         </div>
 
         <div class="flex-1 overflow-y-auto bg-gray-50">
@@ -2327,7 +2407,7 @@ onBeforeUnmount(() => {
                 @click="startRouteToSelected"
                 class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-green-800"
               >
-                🧭 Start Navigation
+                <ReCompass3Fill class="h-5 w-5" /> Start Navigation
               </button>
               <button
                 v-if="routePolyline"
@@ -2636,60 +2716,153 @@ onBeforeUnmount(() => {
         ]"
       ></div>
 
-      <!-- Search Bar -->
-      <div
-        v-if="isGuestInfoComplete"
-        class="absolute top-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:transform z-10 sm:w-full sm:max-w-md sm:px-4"
+     <!-- Search Bar -->
+<div
+  v-if="isGuestInfoComplete"
+  class="absolute top-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:transform z-10 sm:w-full sm:max-w-2xl sm:px-4"
+>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <!-- Search Input -->
+    <div class="relative">
+      <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+        <MagnifyingGlassIcon class="h-4 w-4 text-gray-400" />
+      </div>
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="Search facilities by name, category, or floor..."
+        class="w-full border-0 py-3 pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none bg-gray-50"
+      />
+      <button
+        v-if="searchQuery"
+        @click="clearSearch"
+        class="absolute inset-y-0 right-0 flex items-center pr-3.5 transition-colors"
+        aria-label="Clear search"
       >
-        <div class="bg-white rounded-lg shadow-lg">
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <MagnifyingGlassIcon class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-            </div>
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search for facilities..."
-              class="w-full rounded-lg border-0 py-2.5 pl-9 pr-10 text-xs focus:ring-2 focus:ring-green-900 sm:py-3 sm:pl-10 sm:text-sm"
-            />
-            <button
-              v-if="searchQuery"
-              @click="clearSearch"
-              class="absolute inset-y-0 right-0 flex items-center pr-3"
-            >
-              <XMarkIcon class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600" />
-            </button>
-          </div>
+        <XMarkIcon class="h-4 w-4 text-gray-400 hover:text-gray-600" />
+      </button>
+    </div>
 
-          <div
-            v-if="showSearchResults"
-            class="mt-1 max-h-48 overflow-y-auto border-t border-gray-200 sm:max-h-60"
+    <!-- Search Results -->
+    <div
+      v-if="showSearchResults"
+      class="border-t border-gray-200 bg-white"
+    >
+      <!-- Loading State -->
+      <div v-if="isSearching" class="px-4 py-8 text-center">
+        <div class="inline-block h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-600"></div>
+        <p class="mt-2.5 text-xs text-gray-500 font-medium">Searching facilities...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="filteredLocations.length === 0" class="px-4 py-8 text-center">
+        <div class="w-12 h-12 mx-auto rounded-full bg-gray-100 flex items-center justify-center">
+          <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
+        </div>
+        <p class="mt-3 text-xs font-semibold text-gray-900">No results found</p>
+        <p class="mt-1 text-xs text-gray-500">Try adjusting your search criteria</p>
+      </div>
+
+      <!-- Results List -->
+      <div v-else class="max-h-[70vh] overflow-y-auto">
+        <!-- Results Header -->
+        <div class="sticky top-0 z-10 bg-white px-4 py-2 border-b border-gray-100">
+          <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+            {{ filteredLocations.length }} {{ filteredLocations.length === 1 ? 'Facility' : 'Facilities' }} Found
+          </p>
+        </div>
+
+        <!-- Results Items -->
+        <div class="divide-y divide-gray-100">
+          <button
+            v-for="location in filteredLocations"
+            :key="location.id"
+            @click="selectSearchResult(location)"
+            class="flex w-full items-start gap-3 px-4 py-3 text-left transition-all hover:bg-gray-50 group"
           >
-            <div v-if="isSearching" class="p-3 text-center text-xs text-gray-500 sm:p-4 sm:text-sm">
-              Searching...
+            <!-- Icon Container -->
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-green-50 transition-colors">
+              <span class="text-lg group-hover:scale-105 transition-transform">{{ location.icon }}</span>
             </div>
-            <div v-else-if="filteredLocations.length === 0" class="p-3 text-center text-xs text-gray-500 sm:p-4 sm:text-sm">
-              No facilities found
-            </div>
-            <div v-else>
-              <button
-                v-for="location in filteredLocations"
-                :key="location.id"
-                @click="selectSearchResult(location)"
-                class="flex w-full items-center gap-2 px-3 py-2.5 text-left transition hover:bg-gray-50 sm:px-4 sm:py-3"
-              >
-                <span class="text-lg sm:text-xl">{{ location.icon }}</span>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-xs font-medium text-gray-900 sm:text-sm">{{ location.name }}</p>
-                  <p class="truncate text-[11px] text-gray-500">
-                    {{ location.markerType }} • {{ location.category }}
-                  </p>
+
+            <!-- Content -->
+            <div class="min-w-0 flex-1 space-y-2">
+              <!-- Header Row -->
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="font-semibold text-gray-900 text-xs leading-tight group-hover:text-green-700 transition-colors">
+                  {{ location.name }}
+                </h3>
+                <span class="flex-shrink-0 text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                  Floor {{ location.floor_number }}
+                </span>
+              </div>
+
+              <!-- Meta Tags -->
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-green-50 border border-green-200 text-green-700 text-[10px] font-medium">
+                  {{ location.markerType }}
+                </span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-medium">
+                  {{ location.category }}
+                </span>
+              </div>
+
+              <!-- Description -->
+              <p v-if="location.description" class="text-[11px] text-gray-600 leading-relaxed line-clamp-2">
+                {{ location.description }}
+              </p>
+
+              <!-- Details Grid -->
+              <div v-if="location.capacity || location.amenities || location.status || location.hours"
+                   class="grid grid-cols-2 gap-x-4 gap-y-1 pt-1 border-t border-gray-100">
+                <div v-if="location.capacity" class="flex items-center gap-1.5">
+                  <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                  </svg>
+                  <span class="text-[10px] text-gray-600">
+                    <span class="font-medium text-gray-900">{{ location.capacity }}</span> capacity
+                  </span>
                 </div>
-              </button>
+
+                <div v-if="location.amenities" class="flex items-center gap-1.5">
+                  <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  <span class="text-[10px] text-gray-600">
+                    <span class="font-medium text-gray-900">{{ location.amenities.length }}</span> amenities
+                  </span>
+                </div>
+
+                <div v-if="location.status" class="flex items-center gap-1.5">
+                  <span :class="[
+                    'w-2 h-2 rounded-full flex-shrink-0',
+                    location.status === 'available' ? 'bg-green-500' :
+                    location.status === 'occupied' ? 'bg-red-500' : 'bg-gray-400'
+                  ]"></span>
+                  <span class="text-[10px] text-gray-600 capitalize">{{ location.status }}</span>
+                </div>
+
+                <div v-if="location.hours" class="flex items-center gap-1.5">
+                  <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span class="text-[10px] text-gray-600">{{ location.hours }}</span>
+                </div>
+              </div>
             </div>
-          </div>
+
+            <!-- Action Icon -->
+            <div class="flex-shrink-0 mt-1.5">
+              <svg class="w-4 h-4 text-gray-300 group-hover:text-green-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </div>
+          </button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
 
       <!-- Transport Mode Selector -->
       <div v-if="isGuestInfoComplete" class="absolute bottom-4 left-4 z-10">

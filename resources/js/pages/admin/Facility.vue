@@ -47,6 +47,7 @@ const data = ref({
     name: '',
     category: '',
     department: '',
+    floor_number: '',
     description: '',
     hours: '',
     status: 'active',
@@ -135,6 +136,7 @@ const handleEdit = (facility) => {
         category: facility.category,
         department: facility.department,
         description: facility.description,
+        floor_number: facility.floor_number,
         hours: facility.hours,
         status: facility.status,
         marker_id: facility.marker_id || null
@@ -768,6 +770,16 @@ const pageNumbers = computed(() => {
                                     type="text"
                                     placeholder="Department"
                                     required
+                                    class="w-full px-4 py-2 text-sm border border-green-300 rounded-lg focus:border-green-900 focus:outline-none focus:ring-1 focus:ring-green-900"
+                                />
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-green-900 mb-1">Floor Number</label>
+                                <TextInput
+                                    v-model="data.floor_number"
+                                    type="text"
+                                    placeholder="Floor Number"
                                     class="w-full px-4 py-2 text-sm border border-green-300 rounded-lg focus:border-green-900 focus:outline-none focus:ring-1 focus:ring-green-900"
                                 />
                             </div>

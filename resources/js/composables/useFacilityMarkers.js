@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import L from 'leaflet'
 
+
 export function useFacilityMarkers() {
   const facilityMarkers = ref([])
   const polygonLayers = ref([])
