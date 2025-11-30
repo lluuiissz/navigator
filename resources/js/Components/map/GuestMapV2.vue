@@ -2372,7 +2372,7 @@ onBeforeUnmount(() => {
                     <div v-if="selectedLocation.marker?.floor || selectedLocation.floor_number" class="flex items-center gap-1.5 min-w-0">
                         <Square3Stack3DIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         <span class="text-[11px] font-medium text-gray-700 truncate">
-                        Floor {{ selectedLocation.marker?.floor || selectedLocation.floor_number ?? 'Not specified' }}
+                        Floor {{ selectedLocation.floor_number ?? 'Not specified' }}
                         </span>
                     </div>
 

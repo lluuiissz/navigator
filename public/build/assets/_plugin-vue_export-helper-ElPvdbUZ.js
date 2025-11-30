@@ -1,4 +1,4 @@
-import{A,W as Mt,r as t}from"./app-OFDSvyLL.js";function xt(e,c){c===void 0&&(c={});var f=c.offsetLine||0,i=c.offsetColumn||0,r=e.split(`
+import{A,W as Mt,r as t}from"./app-C6WeSLEk.js";function xt(e,c){c===void 0&&(c={});var f=c.offsetLine||0,i=c.offsetColumn||0,r=e.split(`
 `),h=0,d=r.map(function(s,a){var o=h+s.length+1,p={start:h,end:o,line:a};return h=o,p}),w=0;function g(s,a){return s.start<=a&&a<s.end}function x(s,a){return{line:f+s.line,column:i+a-s.start,character:a}}function b(s,a){typeof s=="string"&&(s=e.indexOf(s,a||0));for(var o=d[w],p=s>=o.end?1:-1;o;){if(g(o,s))return x(o,s);w+=p,o=d[w]}}return b}function bt(e,c,f){return xt(e,f)(c,f)}var O=/[a-zA-Z0-9:_-]/,D=/[\s\t\r\n]/,yt=/['"]/;function Ct(e,c){for(var f="";c--;)f+=e;return f}function Nt(e){var c="",f=[],i=w,r=null,h=null;function d(l){var u=bt(e,n),v=u.line,m=u.column,C=e.slice(0,n),E=/(^|\n).*$/.exec(C)[0].replace(/\t/g,"  "),L=e.slice(n),R=/.*(\n|$)/.exec(L)[0],S=""+E+R+`
 `+Ct(" ",E.length)+"^";throw new Error(l+" ("+v+":"+m+`). If this is valid SVG, it's probably a bug in svg-parser. Please raise an issue at https://github.com/Rich-Harris/svg-parser/issues – thanks!
 
