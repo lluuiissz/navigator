@@ -2365,21 +2365,21 @@ onBeforeUnmount(() => {
                     <div v-if="selectedLocation.marker?.label" class="flex items-center gap-1.5 min-w-0">
                         <MapPinIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         <span class="text-[11px] font-medium text-gray-700 truncate" title="Location">
-                        {{ selectedLocation.marker.label }}
+                        {{ selectedLocation.marker.label ?? 'Not specified' }}
                         </span>
                     </div>
 
                     <div v-if="selectedLocation.marker?.floor || selectedLocation.floor_number" class="flex items-center gap-1.5 min-w-0">
                         <Square3Stack3DIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         <span class="text-[11px] font-medium text-gray-700 truncate">
-                        Floor {{ selectedLocation.marker?.floor || selectedLocation.floor_number }}
+                        Floor {{ selectedLocation.marker?.floor || selectedLocation.floor_number ?? 'Not specified' }}
                         </span>
                     </div>
 
                     <div v-if="selectedLocation.hours" class="col-span-2 flex items-start gap-1.5 min-w-0 pt-1 border-t border-gray-100">
                         <ClockIcon class="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
                         <span class="text-[11px] font-medium text-gray-700 leading-snug">
-                        {{ selectedLocation.hours }}
+                        {{ selectedLocation.hours ?? 'Operating hours not specified' }}
                         </span>
                     </div>
                     </div>
@@ -2793,23 +2793,23 @@ onBeforeUnmount(() => {
                   {{ location.name }}
                 </h3>
                 <span class="flex-shrink-0 text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                  Floor {{ location.floor_number }}
+                  Floor {{ location.floor_number ?? 'Not specified' }}
                 </span>
               </div>
 
               <!-- Meta Tags -->
               <div class="flex flex-wrap items-center gap-1.5">
                 <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-green-50 border border-green-200 text-green-700 text-[10px] font-medium">
-                  {{ location.markerType }}
+                  {{ location.markerType ?? 'Not specified' }}
                 </span>
                 <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-medium">
-                  {{ location.category }}
+                  {{ location.category ?? 'Not specified' }}
                 </span>
               </div>
 
               <!-- Description -->
               <p v-if="location.description" class="text-[11px] text-gray-600 leading-relaxed line-clamp-2">
-                {{ location.description }}
+                {{ location.description ?? 'No description available' }}
               </p>
 
               <!-- Details Grid -->
