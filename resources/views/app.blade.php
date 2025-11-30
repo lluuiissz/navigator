@@ -6,7 +6,7 @@
         <title>Campus Navigator</title>
         <link rel="icon" type="image/png" href="{{ asset('storage/app/public/images/logo.png') }}">
 
-        @vite(['resources/css/app.css', 'C:\Users\mjely\Desktop\ICNS\icnsv1\resources\js\app.js'])
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
         @inertiaHead
         @routes
          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
