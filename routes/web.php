@@ -59,6 +59,12 @@ Route::get('/', function () {
         'polygons' => $polygons,
     ]);
 });
+
+// AR Navigation Demo Route
+Route::get('/demo/ar', function () {
+    return Inertia::render('demo/ARDemo');
+})->name('ar.demo');
+
 Route::post('/create/feedback', [FeedbackController::class, 'store'])->name('feedback.create');
 Route::post('/search-logs', [SearchLogsController::class, 'store'])->name('search.create');
 

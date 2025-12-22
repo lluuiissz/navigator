@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, watch, computed, onBeforeUnmount, toRefs } from 'vue'
-import { MagnifyingGlassIcon, XMarkIcon, UserCircleIcon } from '@heroicons/vue/24/outline'
+import { MagnifyingGlassIcon, XMarkIcon, UserCircleIcon, MapPinIcon, Square3Stack3DIcon, ClockIcon } from '@heroicons/vue/24/outline'
 import axios from 'axios'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -10,6 +10,7 @@ import { useMapRouting } from '../../composables/useMapRouting'
 import { useGuestTracking } from '../../composables/useGuestTracking'
 import { useFacilityMarkers } from '../../composables/useFacilityMarkers'
 import { ReCompass3Fill } from '@kalimahapps/vue-icons';
+import ARNavigation from '../ar/ARNavigation.vue'
 
 // Props
 const props = defineProps({
@@ -98,6 +99,11 @@ const isPhotoGalleryOpen = ref(false)
 const currentPhotoIndex = ref(0)
 const showAllPhotos = ref(false)
 const activeBaseLayer = ref('navigation')
+
+// AR Navigation state
+const isARNavigationActive = ref(false)
+const currentRoutePoints = ref([])
+
 const STORAGE_TYPE = 'localStorage'
 
 const hydrateFeedback = () => {
@@ -822,6 +828,68 @@ const drawRouteOnMap = (route, routeType, isPrivatePath, routeColor = null) => {
   }
 
   toast.success(`Route via ${routeLabels[routeType]}`)
+}
+
+// AR Navigation Functions
+const startARNavigation = () => {
+  if (!routePolyline.value) {
+    toast.error('Please create a route first')
+    return
+  }
+  
+  if (!selectedLocation.value) {
+    toast.error('No destination selected')
+    return
+  }
+  
+  // Convert polyline to route points for AR
+  const routeLatLngs = routePolyline.value.getLatLngs()
+  
+  // Sample points to avoid too many AR markers (max 20 points)
+  const maxPoints = 20
+  const allPoints = routeLatLngs.map(latlng => ({
+    lat: latlng.lat,
+    lng: latlng.lng
+  }))
+  
+  if (allPoints.length > maxPoints) {
+    // Sample evenly distributed points
+    const step = Math.floor(allPoints.length / maxPoints)
+    currentRoutePoints.value = []
+    for (let i = 0; i < allPoints.length; i += step) {
+      currentRoutePoints.value.push(allPoints[i])
+    }
+    // Always include the last point (destination)
+    if (currentRoutePoints.value[currentRoutePoints.value.length - 1] !== allPoints[allPoints.length - 1]) {
+      currentRoutePoints.value.push(allPoints[allPoints.length - 1])
+    }
+  } else {
+    currentRoutePoints.value = allPoints
+  }
+  
+  console.log('🎯 Starting AR Navigation with', currentRoutePoints.value.length, 'route points (sampled from', allPoints.length, 'total points)')
+  isARNavigationActive.value = true
+}
+
+const handleARStarted = () => {
+  console.log('✅ AR Navigation started')
+  toast.success('AR Navigation activated! Point your camera around.')
+}
+
+const handleARStopped = () => {
+  console.log('🛑 AR Navigation stopped')
+  isARNavigationActive.value = false
+  toast.info('Returned to map view')
+}
+
+const handleDestinationReached = () => {
+  console.log('🎉 Destination reached!')
+  toast.success('🎉 You have arrived at your destination!')
+  
+  // Optional: Auto-exit AR after 3 seconds
+  setTimeout(() => {
+    isARNavigationActive.value = false
+  }, 3000)
 }
 
 const loadAllNotesFromStorage = () => {
@@ -2410,6 +2478,24 @@ onBeforeUnmount(() => {
               >
                 <ReCompass3Fill class="h-5 w-5" /> Start Navigation
               </button>
+              
+              <!-- AR Navigation Button -->
+              <button
+                v-if="!isARNavigationActive"
+                type="button"
+                @click="startARNavigation"
+                :disabled="!routePolyline"
+                :class="[
+                  'inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white transition shadow-lg',
+                  routePolyline 
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 cursor-pointer' 
+                    : 'bg-gray-400 cursor-not-allowed opacity-60'
+                ]"
+                :title="!routePolyline ? 'Create a route first by clicking Start Navigation' : 'Switch to AR camera view'"
+              >
+                📱 AR Navigation
+              </button>
+              
               <button
                 v-if="routePolyline"
                 type="button"
@@ -3102,6 +3188,16 @@ onBeforeUnmount(() => {
       </div>
     </div>
   </div>
+
+  <!-- AR Navigation Component (Fullscreen Overlay) -->
+  <ARNavigation
+    v-if="isARNavigationActive && selectedLocation"
+    :destination="selectedLocation"
+    :route-points="currentRoutePoints"
+    @ar-started="handleARStarted"
+    @ar-stopped="handleARStopped"
+    @destination-reached="handleDestinationReached"
+  />
 </template>
 
 <style scoped>

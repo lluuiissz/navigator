@@ -29,6 +29,9 @@ L.Icon.Default.mergeOptions({
   shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 })
 
+// Load AR.js globally (includes A-Frame)
+import '@ar-js-org/ar.js'
+
 import { ZiggyVue } from 'ziggy-js'
 
 createInertiaApp({
@@ -39,10 +42,10 @@ createInertiaApp({
     vueApp.use(plugin)
     vueApp.use(ZiggyVue)
     vueApp.use(Toast, {
-    position: 'top-right',
-    timeout: 3000,
-    closeOnClick: true,
-    pauseOnHover: true,
+      position: 'top-right',
+      timeout: 3000,
+      closeOnClick: true,
+      pauseOnHover: true,
     })
     vueApp.use(createPinia())
     vueApp.mount(el)

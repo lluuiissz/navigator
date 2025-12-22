@@ -9,7 +9,14 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.js'],
             refresh: true,
         }),
-        vue(),
+        vue({
+            template: {
+                compilerOptions: {
+                    // Treat all tags starting with 'a-' as custom elements
+                    isCustomElement: (tag) => tag.startsWith('a-')
+                }
+            }
+        }),
         tailwindcss(),
     ],
     server: {
