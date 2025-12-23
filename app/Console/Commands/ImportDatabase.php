@@ -27,19 +27,26 @@ class ImportDatabase extends Command
         $this->info('Executing SQL statements...');
         
         try {
+            // Disable query logging to reduce log spam
+            DB::connection()->disableQueryLog();
+            
             // Disable foreign key checks
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
             
-            // Execute the SQL
+            // Execute the SQL silently
             DB::unprepared($sql);
             
             // Re-enable foreign key checks
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
             
+            // Re-enable query logging
+            DB::connection()->enableQueryLog();
+            
             $this->info('✅ Database imported successfully!');
             return 0;
             
         } catch (\Exception $e) {
+            DB::connection()->enableQueryLog();
             $this->error('Import failed: ' . $e->getMessage());
             return 1;
         }
