@@ -118,3 +118,26 @@ Route::middleware('auth')->group(function () {
 // Geocoding API endpoint (accessible by guests)
 Route::get('/api/geocode/reverse', [GeocodingController::class, 'reverseGeocode'])->name('geocode.reverse');
 
+// Database importer - run once then remove this route
+Route::get('/import-database-now', function() {
+    $sqlFile = database_path('navigator_export.sql');
+    
+    if (!file_exists($sqlFile)) {
+        return response("SQL file not found at: $sqlFile", 404);
+    }
+    
+    try {
+        $sql = file_get_contents($sqlFile);
+        
+        DB::connection()->disableQueryLog();
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::unprepared($sql);
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        DB::connection()->enableQueryLog();
+        
+        return response("<h1 style='color: green;'>✅ Database imported successfully!</h1><p>All campus data has been imported. You can now use the app!</p>", 200);
+        
+    } catch (\Exception $e) {
+        return response("<h1 style='color: red;'>❌ Import failed</h1><p>" . $e->getMessage() . "</p>", 500);
+    }
+});
