@@ -2,7 +2,7 @@
 // Simple database importer - run once then delete
 // Access via: https://your-app.up.railway.app/import-data.php
 
-$sqlFile = __DIR__ . '/database/navigator_export.sql';
+$sqlFile = __DIR__ . '/../database/navigator_export.sql';
 
 if (!file_exists($sqlFile)) {
     die("SQL file not found!");
