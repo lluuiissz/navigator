@@ -1,0 +1,30 @@
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import vue from '@vitejs/plugin-vue';
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: ['resources/css/app.css', 'resources/js/app.js'],
+            refresh: true,
+        }),
+        vue({
+            template: {
+                compilerOptions: {
+                    // Treat all tags starting with 'a-' as custom elements
+                    isCustomElement: (tag) => tag.startsWith('a-')
+                }
+            }
+        }),
+        tailwindcss(),
+    ],
+    server: {
+        host: '127.0.0.1', // Force IPv4 instead of IPv6
+        port: 5173,
+        strictPort: true,
+        hmr: {
+            host: 'localhost',
+        },
+    },
+});
