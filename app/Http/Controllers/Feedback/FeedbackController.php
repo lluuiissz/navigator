@@ -62,7 +62,12 @@ class FeedbackController extends Controller
 
         $feedback = Feedback::create($data)->load('guest');
 
-        broadcast(new MainEvent('feedback', 'create', $feedback))->toOthers();
+        // Broadcast is best-effort — a Pusher failure must not block the HTTP response
+        try {
+            broadcast(new MainEvent('feedback', 'create', $feedback))->toOthers();
+        } catch (\Exception $broadcastErr) {
+            Log::warning('Feedback broadcast failed (non-critical): ' . $broadcastErr->getMessage());
+        }
 
         return response()->json([
             'message'  => 'Feedback added.',

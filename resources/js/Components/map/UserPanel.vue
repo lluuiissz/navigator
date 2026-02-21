@@ -4,6 +4,7 @@ import { usePage } from '@inertiajs/vue3'
 import {
   UserCircleIcon,
   ChatBubbleLeftRightIcon,
+  PencilSquareIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   ClockIcon,
@@ -121,7 +122,7 @@ const logout = async () => {
         <div class="px-4 py-3 border-b border-gray-100">
           <div class="flex items-center gap-2 mb-3">
             <ClockIcon class="w-4 h-4 text-gray-500" />
-            <h3 class="text-sm font-semibold text-gray-700">Recent Feedback</h3>
+            <h3 class="text-sm font-semibold text-gray-700">Recent Activity</h3>
           </div>
 
           <!-- Loading -->
@@ -132,20 +133,33 @@ const logout = async () => {
           <!-- Empty -->
           <div v-else-if="activities.length === 0" class="text-center py-4">
             <ChatBubbleLeftRightIcon class="w-8 h-8 text-gray-300 mx-auto mb-1" />
-            <p class="text-xs text-gray-400">No feedback submitted yet</p>
+            <p class="text-xs text-gray-400">No activity yet</p>
           </div>
 
-          <!-- Activity list -->
           <ul v-else class="space-y-2 max-h-48 overflow-y-auto">
             <li
               v-for="item in activities"
-              :key="item.id"
+              :key="item.type + item.id"
               class="flex gap-2 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition"
             >
-              <ChatBubbleLeftRightIcon class="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
+              <!-- Icon by type -->
+              <PencilSquareIcon
+                v-if="item.type === 'note'"
+                class="w-4 h-4 text-blue-600 shrink-0 mt-0.5"
+              />
+              <ChatBubbleLeftRightIcon
+                v-else
+                class="w-4 h-4 text-green-700 shrink-0 mt-0.5"
+              />
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-gray-800 truncate">{{ item.facility_name }}</p>
-                <p class="text-xs text-gray-500 truncate italic">"{{ item.message }}"</p>
+                <div class="flex items-center gap-1 mb-0.5">
+                  <p class="text-xs font-medium text-gray-800 truncate">{{ item.facility_name }}</p>
+                  <span :class="[
+                    'shrink-0 text-[9px] font-semibold px-1 py-0.5 rounded uppercase',
+                    item.type === 'note' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                  ]">{{ item.type }}</span>
+                </div>
+                <p class="text-xs text-gray-500 truncate italic">"{{ item.text }}"</p>
                 <p class="text-[10px] text-gray-400 mt-0.5">{{ item.created_at }}</p>
               </div>
             </li>

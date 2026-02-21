@@ -101,6 +101,7 @@ Route::middleware('auth')->group(function () {
     require __DIR__.'/marker/marker.php';
     require __DIR__.'/facility/facility.php';
     require __DIR__.'/feedback/feedback.php';
+    require __DIR__.'/note/note.php';
     require __DIR__.'/logs/searchlog.php';
     require __DIR__.'/auth/auth.php';
     require __DIR__.'/report/report.php';
@@ -124,10 +125,12 @@ Route::middleware('auth')->group(function () {
         // Feedback Dashboard Routes
         Route::get('/feedback', [\App\Http\Controllers\Admin\FeedbackDashboardController::class, 'index'])->name('admin.feedback');
         Route::get('/feedback/export', [\App\Http\Controllers\Admin\FeedbackDashboardController::class, 'export'])->name('admin.feedback.export');
+
+        // Notes Dashboard Route (admin view all notes)
+        Route::get('/notes', [\App\Http\Controllers\UIRenderer\RenderController::class, 'notes'])->name('admin.notes');
     });
 
 });
-    require __DIR__.'/note/note.php';
 
 // Geocoding API endpoint (accessible by guests)
 Route::get('/api/geocode/reverse', [GeocodingController::class, 'reverseGeocode'])->name('geocode.reverse');

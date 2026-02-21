@@ -41,7 +41,7 @@ const navItems = [
   { name: 'Facilities', route: 'facility.get', icon: ClBuilding01 },
   { name: 'Allowlist', route: 'admin.allowlist', icon: BsClipboardCheck },
   { name: 'Feedbacks', route: 'feedback.index', icon: BsChatDots },
-//   { name: 'Notes', route: 'notes.index', icon: BsFileText },
+  { name: 'Notes', route: 'admin.notes', icon: BsFileText },
   { name: 'Campus Map', route: 'map.get', icon: BsMap },
   { name: 'Search Logs', route: 'logs.index', icon: BsSearch },
 ];

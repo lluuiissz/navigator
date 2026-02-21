@@ -63,11 +63,31 @@ const tracking = useGuestTracking()
 const { addFacilityMarker, displayPolygons, markerTypeIcons, facilityMarkers, polygonLayers } = useFacilityMarkers()
 const page = usePage()
 
+const authUser = computed(() => page.props.auth?.user)
+
 const guestInfo = ref({
   id: null,
   nickname: '',
   role: ''
 })
+
+// ── If logged in, always populate guestInfo from the authenticated user's guest ──
+// This is the primary path for auth users; sessionStorage is the fallback for
+// anonymous guests (old flow).
+const initGuestInfoFromAuth = () => {
+  const user = page.props.auth?.user
+  if (user && user.guest) {
+    guestInfo.value = {
+      id: user.guest.id,
+      nickname: user.name || user.guest.name || '',
+      role: user.role || user.guest.role || 'visitor',
+    }
+    isGuestInfoComplete.value = true
+    showGuestModal.value = false
+    return true
+  }
+  return false
+}
 const sessionCheckInterval = ref(null)
 const transportMode = ref('walking')
 const lastRouteCalculationPosition = ref(null)
@@ -488,6 +508,10 @@ const openLocationPanel = (location, { centerOnMap = true } = {}) => {
   if (!isSameLocation) {
     feedback.value = ''
     noteContent.value = ''
+    // Reset sending states — prevents a stuck "Sending..." from a previous
+    // panel carrying over when the user opens a different location
+    isSavingFeedback.value = false
+    isSavingNote.value = false
     isShowingNoteInput.value = false
     clearPhotoSelection()
     showAllPhotos.value = false // Reset photo display
@@ -1076,7 +1100,7 @@ const saveNote = async () => {
   }
 
   if (!guestInfo.value.id) {
-    toast.error('Guest information not found')
+    toast.error('Guest information not found. Please log in.')
     return
   }
 
@@ -1088,65 +1112,41 @@ const saveNote = async () => {
   isSavingNote.value = true
 
   try {
-    const storage = STORAGE_TYPE === 'localStorage' ? localStorage : sessionStorage
-    const storageKey = `facility_notes_${selectedLocation.value.id}`
-    const expirationKey = `${storageKey}_expiration`
-
-    // Get existing notes
-    const existingNotesData = storage.getItem(storageKey)
-    let notesArray = existingNotesData ? JSON.parse(existingNotesData) : []
-
-    // Remove any expired notes
-    const now = Date.now()
-    notesArray = notesArray.filter(note => {
-      if (note.expiresAt && note.expiresAt < now) {
-        return false // Expired
-      }
-      return true
+    // POST to the authenticated backend endpoint
+    const response = await axios.post('/create/note', {
+      marker_id: selectedLocation.value.marker_id,
+      content:   noteContent.value.trim(),
     })
 
-    // Check if this guest already has a note for this facility
-    const existingNoteIndex = notesArray.findIndex(note => note.guest_id === guestInfo.value.id)
+    const savedNote = response.data.note
 
-    // Create new note with 24-hour expiration
-    const expiresAt = now + (24 * 60 * 60 * 1000) // 24 hours from now
+    // Normalise into the shape the map expects
     const newNote = {
-      id: `${STORAGE_TYPE}_${Date.now()}`,
-      content: noteContent.value.trim(),
-      marker_id: selectedLocation.value.marker_id,
-      guest_id: guestInfo.value.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      expiresAt: expiresAt,
-      guest: {
-        id: guestInfo.value.id,
-        name: guestInfo.value.nickname
-      }
+      id:         savedNote.id,
+      content:    savedNote.content,
+      marker_id:  savedNote.marker_id,
+      guest_id:   savedNote.guest_id,
+      created_at: savedNote.created_at,
+      updated_at: savedNote.updated_at,
+      guest: savedNote.guest ?? { id: guestInfo.value.id, name: guestInfo.value.nickname },
     }
 
-    // Replace existing note or add new one
-    if (existingNoteIndex !== -1) {
-      // Replace old note
-      notesArray[existingNoteIndex] = newNote
-    } else {
-      // Add new note
-      notesArray.push(newNote)
-    }
-
-    // Save to storage
-    storage.setItem(storageKey, JSON.stringify(notesArray))
-
-    // Update local state - remove old note from this guest if exists
+    // Remove the user's previous note for this marker (if any) and add the new one
     localNotes.value = localNotes.value.filter(note =>
       !(note.marker_id === selectedLocation.value.marker_id && note.guest_id === guestInfo.value.id)
     )
     localNotes.value = [...localNotes.value, newNote]
 
-    // Refresh the page to reload all notes and ensure clean state
-      window.location.reload()
+    noteContent.value = ''
+    isShowingNoteInput.value = false
+    toast.success('Note saved!')
+
+    // Redisplay notes on map without a full page reload
+    displayNotesOnMap()
   } catch (error) {
     console.error('Error saving note:', error)
-    toast.error('Failed to save note')
+    const errMsg = error.response?.data?.error || error.response?.data?.message || 'Failed to save note'
+    toast.error(errMsg)
   } finally {
     isSavingNote.value = false
   }
@@ -1840,7 +1840,18 @@ const reverseGeocode = async (lat, lng) => {
 
 const initializeMap = async () => {
   try {
+    // ── Populate guestInfo from the authenticated user FIRST ──────────────────
+    // If the user is logged in, their guest record is already shared via
+    // page.props.auth.user.guest (HandleInertiaRequests). Doing this before
+    // loadPrivateRoutes() ensures guestInfo.id is set before the map fires
+    // its 'load' event and displayNotesOnMap() runs.
+    if (!initGuestInfoFromAuth()) {
+      // Fallback: try sessionStorage for anonymous (old) guest flow
+      loadGuestInfoFromSession()
+    }
+
     await loadPrivateRoutes()
+
 
     // NOTE: loadAllNotesFromStorage() is intentionally called AFTER the map
     // 'load' event fires (see below), so that guestInfo is guaranteed to be
@@ -2247,9 +2258,7 @@ const saveFeedback = async () => {
       marker_id: selectedLocation.value.marker_id,
       message: feedback.value.trim()
     }
-    // Preserve the role the user declared at the start of the session
     authModalRole.value = guestInfo.value.role || 'student'
-    // Show auth modal
     showAuthModal.value = true
     return
   }
@@ -2279,23 +2288,22 @@ const saveFeedback = async () => {
     feedback.value = ''
   } catch (error) {
     console.error('Error saving feedback:', error)
-    console.error('Error response:', error.response)
-    console.error('Error status:', error.response?.status)
-    console.error('Error data:', error.response?.data)
-    
-    // Handle 403 - Not in allowlist (for authenticated users)
+
     if (error.response?.status === 403) {
       const errorMsg = error.response?.data?.error || 'You are not authorized to submit feedback'
       const details = error.response?.data?.details || ''
       toast.error(`${errorMsg}${details ? '\n' + details : ''}`, { duration: 6000 })
-      return
+    } else {
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Failed to save feedback'
+      toast.error(errorMsg)
     }
-    
-    // Handle other errors
-    const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Failed to save feedback'
-    toast.error(errorMsg)
+  } finally {
+    // Always reset — this was the bug: without finally, any error left the
+    // button permanently stuck on "Sending..."
+    isSavingFeedback.value = false
   }
 }
+
 
 // Handle successful authentication from modal
 const handleAuthSuccess = async (user) => {
@@ -2340,21 +2348,38 @@ const previousPhoto = () => {
 
 const hasGuestInfo = loadGuestInfoFromSession()
 
-onMounted(() => {
+onMounted(async () => {
   // Check if user is authenticated (Priority over session storage)
   if (page.props.auth?.user) {
     const user = page.props.auth.user
+
+    // Base guestInfo from Inertia shared props
     guestInfo.value = {
       id: user.guest?.id || null,
       nickname: user.name,
-      role: user.guest?.role || user.role || 'student',
+      role: user.guest?.role || user.role || 'visitor',
     }
+
+    // ── Fallback: if guest.id is missing (old user without linked guest),
+    //    call the API to create/fetch the guest record now so notes work. ──
+    if (!guestInfo.value.id) {
+      try {
+        const res = await axios.get('/api/me/guest')
+        guestInfo.value.id   = res.data.guest.id
+        guestInfo.value.role = res.data.guest.role
+        console.log('✅ Guest record fetched/created via API:', res.data.guest.id)
+      } catch (e) {
+        console.error('Failed to create guest record via API:', e)
+      }
+    }
+
     isGuestInfoComplete.value = true
     showGuestModal.value = false // Explicitly close modal for authenticated users
-    
-    console.log(`Welcome back, ${guestInfo.value.nickname}! (Authenticated)`)
-    
+
+    console.log(`Welcome back, ${guestInfo.value.nickname}! (Authenticated, guest ID: ${guestInfo.value.id})`)
+
     initializeMap()
+
     
     // Check for pending feedback after auth (from modal flow)
     const storedFeedback = sessionStorage.getItem('pendingFeedback')
